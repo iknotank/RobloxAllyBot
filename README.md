@@ -8,12 +8,7 @@ HOW TO USE
 
 2 Open the .env file and configure your group ID and cookie.
 
-3 Open your terminal and execute the following commands (only for the first time):
+3 Run start.bat
 
-	pip install requests python-dotenv colorama discord-webhook discord.py aiohttps
- 	pip install --upgrade pip
-
-4 Run the script:
-
-	python main.py
+Enjoy!
 
